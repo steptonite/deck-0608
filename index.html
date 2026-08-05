@@ -220,11 +220,11 @@ const S = [
   h2:"Простой производственный принцип",
   steps:[
     {n:"1", k:"Найти движение дёшево", v:"480p, много попыток — качество неважно",
-     slot:{file:"05-step1.mp4", kind:"video", auto:true, what:"Ролик 480p", spec:"Первое звено цепочки — тот самый шот в низком качестве.", who:"от Кати", size:"mp4"}},
+     slot:{file:"05-step1.mp4", kind:"video", auto:true, sync:"g5", what:"Ролик 480p", spec:"Первое звено цепочки — тот самый шот в низком качестве.", who:"от Кати", size:"mp4"}},
     {n:"2", k:"Зафиксировать структуру", v:"это не генерация, это замер",
-     slot:{file:"05-step2.mp4", kind:"video", auto:true, what:"Карта глубины", spec:"Карта с того же самого шота — цепочка должна читаться как один шот.", who:"от Кати", size:"mp4"}},
+     slot:{file:"05-step2.mp4", kind:"video", auto:true, sync:"g5", what:"Карта глубины", spec:"Карта с того же самого шота — цепочка должна читаться как один шот.", who:"от Кати", size:"mp4"}},
     {n:"3", k:"Получить финальное качество", v:"движение уже зафиксировано",
-     slot:{file:"05-step3.mp4", kind:"video", auto:true, what:"Финальный ролик", spec:"Тот же шот в высоком качестве.", who:"от Кати", size:"mp4"}}]},
+     slot:{file:"05-step3.mp4", kind:"video", auto:true, sync:"g5", what:"Финальный ролик", spec:"Тот же шот в высоком качестве.", who:"от Кати", size:"mp4"}}]},
 
 /* 6 */ {tc:"00:12:50:00", take:6, idx:"03", tag:"Решение",
   h:"Фиксируем структуру движения <em>картой глубины</em>.",
@@ -302,7 +302,13 @@ const S = [
 ];
 
 /* ============================================================ РЕНДЕР ============================================================ */
+/* __ASSET_RESOLVER__  (bundle.py подменяет этот блок целиком — не трогать маркеры)
+   V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
+   и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
+const V = "20260806-0027";
+const U = f => A + f + "?v=" + V;
+/* __ASSET_RESOLVER_END__ */
 let i0 = 0;
 
 /* числовой блок вместо картинки — когда доказательство это сумма, а не скрин */
@@ -330,10 +336,12 @@ function slotHTML(s, extraClass){
       <div class="who">${s.who} · ${s.size}</div>
       <div class="file">${A}${s.file}</div>
     </div>`;
+  // sync — группа роликов, которые должны идти как один шот: без своего loop,
+  // цикл перезапускает контроллер, когда доиграл самый длинный (см. syncGroups)
   const media = s.kind === "video"
-    ? `<video src="${A}${s.file}" ${s.poster ? `poster="${A}${s.poster}"` : ""} controls preload="metadata" playsinline${
-        s.auto ? " loop muted data-auto" : ""} data-media></video>`
-    : `<img src="${A}${s.file}" alt="" data-media>`;
+    ? `<video src="${U(s.file)}" ${s.poster ? `poster="${U(s.poster)}"` : ""} controls preload="metadata" playsinline${
+        s.auto ? (s.sync ? ` muted data-auto data-sync="${s.sync}"` : " loop muted data-auto") : ""} data-media></video>`
+    : `<img src="${U(s.file)}" alt="" data-media>`;
   return `<div class="slot ${ratio} ${extraClass || ""}" data-slot="${s.file}">${media}${ph}${lbl}</div>`;
 }
 
@@ -512,6 +520,23 @@ function build(){
     if(m.tagName === "IMG"){ m.complete && m.naturalWidth ? ok() : (m.onload = ok, m.onerror = bad); }
     else { m.onloadedmetadata = ok; m.onerror = bad; }
   });
+
+  wireSync(st);
+}
+
+/* Ролики одной группы (data-sync) — это один и тот же шот в трёх состояниях.
+   Со своим loop они разъезжаются уже на втором круге: длительности разные.
+   Поэтому loop снят, а круг перезапускаем разом — когда доиграл самый длинный. */
+function wireSync(root){
+  const groups = {};
+  root.querySelectorAll("video[data-sync]").forEach(v => {
+    (groups[v.dataset.sync] = groups[v.dataset.sync] || []).push(v);
+  });
+  Object.values(groups).forEach(list => list.forEach(v =>
+    v.addEventListener("ended", () => {
+      if(list.some(x => !x.ended)) return;
+      list.forEach(x => { x.currentTime = 0; x.play().catch(() => {}); });
+    })));
 }
 
 /* ============================================================ НАВИГАЦИЯ ============================================================ */
