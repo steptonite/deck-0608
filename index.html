@@ -209,9 +209,11 @@ const S = [
 /* 4 */ {tc:"00:06:10:00", take:4, idx:"02", tag:"Сравнение",
   h:"Почти тот же промпт.<br>Другое разрешение.<br><em>Другое видео.</em>",
   note:"Следующая генерация выдумывает заново.",
+  bullets:["движение почти совпало — а персонаж уехал: другой капюшон, другое лицо",
+           "качество дешёвого прогона — мусор. И это не мешает: на нём мы ищем движение"],
   pair:[
-    {file:"04-480.mp4", kind:"video", label:"480P", what:"Дешёвый прогон", spec:"Тот, где движение поймано.", who:"от Кати", size:"mp4"},
-    {file:"04-1080.mp4", kind:"video", label:"1080P", what:"Дорогой прогон", spec:"Тот же промпт, высокое разрешение — видно, что уехало.", who:"от Кати", size:"mp4"}],
+    {file:"04-480.mp4", kind:"video", auto:true, label:"480P · ДЁШЕВО", what:"Дешёвый прогон", spec:"Тот, где движение поймано.", who:"от Кати", size:"mp4"},
+    {file:"04-1080.mp4", kind:"video", auto:true, label:"720P · ДОРОГО", what:"Дорогой прогон", spec:"Тот же промпт, высокое разрешение — видно, что уехало.", who:"от Кати", size:"mp4"}],
   foot:"Показать пальцем: лицо · локация · движение"},
 
 /* 5 */ {tc:"00:09:30:00", take:5, tag:"Процесс", kicker:"Методология",
@@ -329,7 +331,8 @@ function slotHTML(s, extraClass){
       <div class="file">${A}${s.file}</div>
     </div>`;
   const media = s.kind === "video"
-    ? `<video src="${A}${s.file}" ${s.poster ? `poster="${A}${s.poster}"` : ""} controls preload="metadata" playsinline data-media></video>`
+    ? `<video src="${A}${s.file}" ${s.poster ? `poster="${A}${s.poster}"` : ""} controls preload="metadata" playsinline${
+        s.auto ? " loop muted data-auto" : ""} data-media></video>`
     : `<img src="${A}${s.file}" alt="" data-media>`;
   return `<div class="slot ${ratio} ${extraClass || ""}" data-slot="${s.file}">${media}${ph}${lbl}</div>`;
 }
@@ -523,6 +526,10 @@ function show(n){
   all.forEach((s, k) => {
     s.classList.toggle("on", k === i0);
     s.querySelectorAll("video").forEach(v => { if(k !== i0) v.pause(); });
+    // пара сравнения (data-auto) заводится сама, чтобы в эфире не кликать по двум роликам
+    if(k === i0) s.querySelectorAll("video[data-auto]").forEach(v => {
+      v.currentTime = 0; v.play().catch(() => {});
+    });
   });
   document.getElementById("bar").style.width = ((i0 + 1) / all.length * 100) + "%";
   document.getElementById("hud").textContent = (i0 + 1) + " / " + all.length;
