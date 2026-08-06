@@ -179,6 +179,27 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .ph .who{margin-top:6px;font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
 .ph .file{font-family:var(--mono);font-size:14px;color:var(--dim);letter-spacing:.03em}
 
+/* ---------- обкладинка-компарер ----------
+   Обкладинка СТАТИЧНА (нічого не крутиться саме по собі), рухається тільки
+   полоса — і тільки за курсором. Два кадри — той самий шот: знизу карта
+   глибини, зверху фінал, обрізаний по полосі. Пропорції однакові (1920×1072),
+   тому вони лягають пікселем у піксель і «до/після» читається без пояснень. */
+.cmp{position:absolute;inset:0;overflow:hidden;cursor:ew-resize}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cmp img.front{clip-path:inset(0 0 0 var(--cx))}
+/* завеса под текст: слева глухо, справа кадр должен читаться — иначе финал
+   выглядит таким же тёмным, как карта, и сравнивать нечего */
+.cmp-veil{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(100deg,#080808 34%,rgba(8,8,8,.66) 55%,rgba(8,8,8,.06) 84%)}
+.cmp-line{position:absolute;top:0;bottom:0;left:var(--cx);width:1px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(232,93,34,.75) 22%,rgba(232,93,34,.75) 78%,transparent)}
+.cmp-grip{position:absolute;top:50%;left:50%;width:26px;height:26px;transform:translate(-50%,-50%) rotate(45deg);
+  border:1px solid rgba(232,93,34,.85);background:rgba(8,8,8,.45)}
+.cmp-lab{position:absolute;bottom:118px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.cmp-lab.l{right:18px;text-align:right}
+.cmp-lab.r{left:18px;color:var(--accent)}
+
 /* ---------- керування ---------- */
 #bar{position:fixed;left:0;bottom:0;height:2px;background:var(--accent);z-index:70;transition:width .3s cubic-bezier(.16,1,.3,1)}
 #hud{position:fixed;right:18px;bottom:16px;z-index:70;font-family:var(--mono);font-size:13px;color:#555;letter-spacing:.1em}
@@ -243,7 +264,11 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 const S = [
 
 /* 1 */ {tc:"00:00:00:00", take:1, cover:true,
-  slot:{file:"01-cover.jpg", kind:"img", what:"Фон обложки", spec:"Один кинематографичный кадр из финальной работы. Тёмный, без лиц крупным планом — сверху ляжет текст.", who:"от Кати", size:"1920×1080"}},
+  /* Обложка статичная, но фон — компарер: полоса идёт за курсором.
+     Оба файла — ОДИН И ТОТ ЖЕ кадр (1920×1072), поэтому ложатся пиксель в пиксель:
+     слева от полосы карта глубины, справа финальный кадр. Тема эфира — одним движением. */
+  compare:{back:{file:"01-cover-depth.jpg", label:"КАРТА ГЛУБИНЫ"},
+           front:{file:"01-cover.jpg", label:"ФИНАЛЬНЫЙ КАДР"}, at:57}},
 
 /* 2 */ {tc:"00:01:40:00", take:2, full:true, tag:"Результат",
   slot:{file:"03-final.mp4", kind:"video", auto:true, mh:780, what:"Финальный ролик — «что получилось»", spec:"Заводится сам в цикле, замьючен. Звук — рукой. Комментарий после: «это одна дорогая генерация, а не двадцать».", who:"от Кати ✅", size:"720p mp4, H.264"}},
@@ -345,7 +370,8 @@ const S = [
 
 /* 14 */ {tc:"00:42:00:00", take:15, questions:true},
 
-/* 15 */ {tc:"00:47:00:00", take:16, thanks:true},
+/* 🔴 06.08: «Спасибо за внимание» стоит В САМОМ КОНЦЕ, после опциональных O1/O2.
+   Было — перед установкой ComfyUI, и получалось, что после точки идёт ещё материал. */
 
 /* O1 */ {tc:"—", take:"O1", idx:"O1", tag:"Опционально", media:true,
   h:"Установка <em>ComfyUI</em>",
@@ -357,7 +383,9 @@ const S = [
   h:"Пайплайны <em>посложнее</em>",
   lead:"Глубина + контур + поза — вместе, с балансом силы.",
   bullets:["поза считается на процессоре — заметно медленнее"],
-  slot:{file:"o2-combo.jpg", kind:"img", what:"Пример: лайнарт + поза + глубина", spec:"Один кадр, где три карты работают вместе. Зависит от теста Кати.", who:"от Кати", size:"1920×1080"}}
+  slot:{file:"o2-combo.jpg", kind:"img", what:"Пример: лайнарт + поза + глубина", spec:"Один кадр, где три карты работают вместе. Зависит от теста Кати.", who:"от Кати", size:"1920×1080"}},
+
+/* последний */ {tc:"00:47:00:00", take:16, thanks:true}
 ];
 
 /* ============================================================ РЕНДЕР ============================================================ */
@@ -365,7 +393,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260806-1231";
+const V = "20260806-1251";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -463,10 +491,16 @@ function build(){
     let body = "";
 
     if(d.cover){
-      body = `<div style="position:absolute;inset:0;height:100%">
-          ${slotHTML(d.slot, "cover-bg")}
-          <div style="position:absolute;inset:0;background:linear-gradient(100deg,#080808 34%,rgba(8,8,8,.72) 58%,rgba(8,8,8,.25) 100%)"></div>
-          <div style="position:absolute;top:0;bottom:0;left:57%;width:1px;background:linear-gradient(180deg,transparent,rgba(232,93,34,.55) 30%,rgba(232,93,34,.55) 70%,transparent)"></div>
+      const c = d.compare;
+      body = `<div class="cmp" data-cmp style="--cx:${c.at}%">
+          <img src="${U(c.back.file)}" alt="">
+          <img src="${U(c.front.file)}" alt="" class="front">
+          <div class="cmp-veil"></div>
+          <div class="cmp-line">
+            <span class="cmp-lab l">${c.back.label}</span>
+            <span class="cmp-lab r">${c.front.label}</span>
+            <span class="cmp-grip"></span>
+          </div>
         </div>
         <div style="position:relative;padding:0 80px;max-width:1100px">
           <div class="eyebrow st" style="--i:0"><span>КБК — эфир</span><i></i><span>06.08.2026</span></div>
@@ -649,6 +683,23 @@ function build(){
 
   wireSync(st);
   wireLoad(st);
+  wireCompare(st);
+}
+
+/* Полоса обложки идёт за курсором. Координату считаем от рамки самого блока
+   (getBoundingClientRect), а не от окна: сцена отмасштабирована под экран,
+   и проценты окна дали бы промах. Клик по обложке по-прежнему листает дальше. */
+function wireCompare(root){
+  const box = root.querySelector("[data-cmp]");
+  if(!box) return;
+  const move = e => {
+    const r = box.getBoundingClientRect();
+    if(!r.width) return;
+    const p = (e.clientX - r.left) / r.width * 100;
+    box.style.setProperty("--cx", Math.max(2, Math.min(98, p)).toFixed(2) + "%");
+  };
+  box.addEventListener("pointermove", move);
+  box.addEventListener("pointerdown", move);
 }
 
 /* ---- модель нагрузки (см. loadHTML) --------------------------------------
