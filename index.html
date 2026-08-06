@@ -40,9 +40,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Mont',s
 @supports not ((-webkit-background-clip:text) or (background-clip:text)){
   .tex,h1 span,h2 em,.row .num,.eyebrow b,.ph .id{-webkit-text-fill-color:var(--accent);color:var(--accent);background:none}}
 
-/* 🔴 СІТКА (06.08): верхня лінія 96px — якір, тіло тягнеться до підвалу.
-   Порожнього низу бути не може: за низ відповідає тіло, а не «як вийде». */
-.slide{position:absolute;inset:0;padding:96px 80px 116px;display:none;opacity:0;
+/* 🔴 СІТКА (06.08 v2): на ВСІХ слайдах тіло — ОДИН І ТОЙ САМИЙ прямокутник.
+   Службовий рядок і заголовок стоять на своїх місцях (їх не рухаємо),
+   заголовку віддано СТАЛУ смугу у 2 рядки — тому тіло кожного слайда
+   починається на одній лінії й має однакову висоту (--body).
+   Вміст тіла центрується в цьому прямокутнику: нічого не «прилипає доверху»,
+   і порожнеча не збирається дірою під текстом. */
+:root{--body:648px}
+.slide{position:absolute;inset:0;padding:96px 80px 100px;display:none;opacity:0;
   flex-direction:column;justify-content:flex-start}
 /* по центру — только те слайды, где нет тела: обложка, живое демо, вопросы */
 .slide.mid{justify-content:center}
@@ -75,17 +80,22 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .chrome{position:absolute;left:80px;right:80px;bottom:44px;display:flex;align-items:center;
   gap:26px;font-family:var(--mono);font-size:15px;color:var(--dim);letter-spacing:.05em}
 .chrome .sep{width:1px;height:12px;background:var(--line-2)}
+/* 🔴 РИСКИ: шар рисок РІВНО ОДИН — він у масці. Другий шар зверху не накладеш
+   так, щоб риска лягла на риску (вони роз'їжджаються на пів-пікселя), тому
+   рухається не другий ряд рисок, а СВІТЛО під тією самою маскою.
+   Без помаранчевого: просто яскравість, повільно. */
 .chrome .grow{position:relative;flex:1;height:7px;align-self:flex-end;margin-bottom:3px;overflow:hidden;
-  background-image:repeating-linear-gradient(90deg,var(--line-2) 0 1px,transparent 1px 16px);
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
-  mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
-/* світло повільно йде вздовж рисок — риски «дихають» яскравістю, а не блимають */
-.chrome .grow::after{content:"";position:absolute;inset:0;width:38%;
-  background-image:repeating-linear-gradient(90deg,rgba(232,93,34,.85) 0 1px,transparent 1px 16px);
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 45%,transparent);
-  mask-image:linear-gradient(90deg,transparent,#000 45%,transparent);
-  animation:sweep 7s cubic-bezier(.45,0,.55,1) infinite}
-@keyframes sweep{0%{transform:translateX(-40%)}50%{transform:translateX(300%)}100%{transform:translateX(-40%)}}
+  background:var(--line-2);
+  -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 1px,transparent 1px 16px),
+    linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
+  -webkit-mask-composite:source-in;
+  mask-image:repeating-linear-gradient(90deg,#000 0 1px,transparent 1px 16px),
+    linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
+  mask-composite:intersect}
+.chrome .grow::after{content:"";position:absolute;top:0;bottom:0;left:0;width:34%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 50%,transparent);
+  animation:sweep 34s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes sweep{0%{transform:translateX(-110%)}50%{transform:translateX(400%)}100%{transform:translateX(-110%)}}
 .chrome .take{position:relative;color:#D1D5DB;padding-left:13px}
 .chrome .take::before{content:"";position:absolute;left:0;top:-4px;width:7px;height:7px;
   border-left:1px solid var(--accent);border-top:1px solid var(--accent)}
@@ -97,33 +107,33 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .corner.bl{bottom:34px;left:34px;border-right:0;border-top:0}
 .corner.br{bottom:34px;right:34px;border-left:0;border-top:0}
 
-/* ---------- сітки ----------
-   🔴 Тіло слайда ЗАВЖДИ забирає всю висоту до підвалу (flex:1).
-   Текстова колонка тримає верхню лінію, медіа-колонка тягнеться на весь зріст —
-   тому низ не буває порожнім, а колонки вирівняні одна з одною. */
-/* 🔴 Заголовок слайда — на ОДНІЙ лінії для всіх: його не треба шукати очима */
-.head{margin-top:40px}
-.head + .grid,.head + p + .grid{margin-top:40px}
-.grid{display:grid;gap:56px;margin-top:44px;flex:1;min-height:0;align-items:stretch}
-.g-split{grid-template-columns:1fr 1.04fr}
-.g-wide{grid-template-columns:1fr}
-.g-2{grid-template-columns:1fr 1fr;gap:40px}
-.g-3{grid-template-columns:repeat(3,1fr);gap:36px;align-items:start}
+/* ---------- сітка ----------
+   Заголовок стоїть де стояв; йому віддано сталу смугу у 2 рядки, тому тіло
+   ВСІХ слайдів — один прямокутник: 1760 × 648, від y=430 до y=1078. */
+.head{margin-top:38px}
+.grid{display:grid;gap:56px;margin-top:34px;flex:1;min-height:0;
+  /* медіа міряється ВИСОТОЮ (див. --mh) і сама забирає свою ширину,
+     текст бере залишок. Тому праві краї медіа на всіх слайдах на одній лінії. */
+  grid-template-columns:minmax(0,1fr) auto;align-items:center}
+/* три кроки в ряд: тут ширину задає колонка, висоту бере пропорція */
+.g-3{grid-template-columns:repeat(3,1fr);gap:36px;align-content:center}
+.g-3 .slot{width:100%;height:auto}
+.g-wide{grid-template-columns:minmax(0,1fr);height:auto}
 .stack{display:flex;flex-direction:column;gap:26px}
 .stack.tight{gap:16px}
-/* 🔴 ЯКІР — не верх вмісту, а службовий eyebrow: він однаковий на всіх слайдах,
-   тому верхня лінія не стрибає. Сам вміст обох колонок центрується по вертикалі —
-   інакше короткий текст «прилипає доверху», а під ним лишається діра. */
-/* 🔴 Обидві колонки стартують від ОДНІЄЇ лінії під заголовком — щоб на всіх
-   слайдах око знало, куди дивитись. Порожнеча збирається внизу однією смугою,
-   а не розкидається між блоками. */
-.col-text{display:flex;flex-direction:column;gap:26px;justify-content:flex-start;min-height:0}
-/* медіа: пропорцію не ламаємо ніколи */
-.col-media{display:flex;flex-direction:column;gap:18px;min-height:0;justify-content:flex-start}
-.col-media .slot{width:100%;margin-inline:auto}
-/* пара: два кадри 16:9 мають влізти у висоту тіла, тому колонку звужуємо під них,
-   а не ламаємо пропорцію. Праві краї всіх слайдів лишаються на одній лінії. */
-.col-media.duo{max-width:600px;margin-left:auto;width:100%}
+/* 🔴 Обидві колонки центруються у тілі слайда — короткий текст більше не
+   «прилипає доверху», а порожнеча ділиться порівну зверху й знизу. */
+.col-text{display:flex;flex-direction:column;gap:26px;justify-content:center;
+  min-height:0;max-width:52ch}
+.col-media{display:grid;gap:18px;justify-content:end;align-content:center}
+.col-media.quad{grid-template-columns:auto auto}
+/* медіа: пропорцію не ламаємо ніколи — задаємо ВИСОТУ, ширину бере пропорція */
+.col-media .slot,.grid > .slot{height:var(--mh,640px);width:auto}
+/* пара на всю смугу: рядок тексту зверху, два кадри під ним від краю до краю */
+.g-rows{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;gap:26px;align-items:stretch}
+.pairtext{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.col-media.duo{grid-template-columns:1fr 1fr;align-content:center;justify-content:stretch}
+.col-media.duo .slot{width:100%;height:auto;max-height:100%}
 
 
 /* ---------- список «ручок» / кроків ---------- */
@@ -146,12 +156,13 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .slot.r43{aspect-ratio:4/3}
 .slot.r32{aspect-ratio:3/2}
 .slot.r11{aspect-ratio:1/1}
+.slot.r174{aspect-ratio:1280/740}   /* колаж 2×2 з роликів 480p */
 .slot img{width:100%;height:100%;object-fit:cover;display:block;background:#0E0E0E}
 /* скріни й колажі різати не можна — там дані, а не настрій */
 .slot img.fit{object-fit:contain;background:#0A0A0A}
 .slot video{width:100%;height:100%;object-fit:contain;display:block;background:#0A0A0A}
 /* слот, который тянется по высоте родителя, а не по пропорции */
-.slot.fill{aspect-ratio:auto;height:100%}
+.slot.fill{aspect-ratio:auto;height:100%;width:100%}
 /* візирні кути на кожному медіа — «рамочки» з референсу */
 .slot::before,.slot::after{content:"";position:absolute;width:28px;height:28px;z-index:3;pointer-events:none;
   border:1px solid rgba(232,93,34,.55)}
@@ -235,7 +246,7 @@ const S = [
   slot:{file:"01-cover.jpg", kind:"img", what:"Фон обложки", spec:"Один кинематографичный кадр из финальной работы. Тёмный, без лиц крупным планом — сверху ляжет текст.", who:"от Кати", size:"1920×1080"}},
 
 /* 2 */ {tc:"00:01:40:00", take:2, full:true, tag:"Результат",
-  slot:{file:"03-final.mp4", kind:"video", auto:true, what:"Финальный ролик — «что получилось»", spec:"Заводится сам в цикле, замьючен. Звук — рукой. Комментарий после: «это одна дорогая генерация, а не двадцать».", who:"от Кати ✅", size:"720p mp4, H.264"}},
+  slot:{file:"03-final.mp4", kind:"video", auto:true, mh:780, what:"Финальный ролик — «что получилось»", spec:"Заводится сам в цикле, замьючен. Звук — рукой. Комментарий после: «это одна дорогая генерация, а не двадцать».", who:"от Кати ✅", size:"720p mp4, H.264"}},
 
 /* 3 */ {tc:"00:03:20:00", take:3, idx:"01", tag:"Проблема",
   h:"~$150 — и пара удачных <em>генераций</em>.",
@@ -244,9 +255,9 @@ const S = [
   stat:{big:"1", under:"удачная генерация", line:"Столько получилось за месяц<br>и ~$150 списаний."}},
 
 /* 4 */ {tc:"00:06:10:00", take:4, idx:"02", tag:"Сравнение",
-  h:"Почти тот же промпт.<br>Другое разрешение.<br><em>Другое видео.</em>",
+  h:"Почти тот же промпт, другое разрешение —<br><em>другое видео.</em>",
   note:"Следующая генерация выдумывает заново.",
-  bullets:["разъехалась раскадровка: сверху крупный план, снизу общий — это уже другой монтаж",
+  bullets:["разъехалась раскадровка: слева крупный план, справа общий — это уже другой монтаж",
            "и диалог уехал следом. Звук можно включить прямо здесь"],
   pair:[
     {file:"04-480.mp4", kind:"video", auto:true, label:"ДЁШЕВО", what:"Дешёвый прогон", spec:"Тот, где движение поймано.", who:"от Кати", size:"mp4"},
@@ -275,7 +286,7 @@ const S = [
   h:"Это не волшебная <em>таблетка</em>.",
   lead:"Промпт всё равно придётся искать.<br>Просто теперь — за копейки.",
   bullets:["написала → отправила → ерунда → переписала","и только с уверенным промптом — в дорогое качество"],
-  slot:{file:"07-fails.jpg", kind:"img", fit:"contain", ratio:"r43", what:"Неудачные попытки", spec:"3–4 кадра или коллаж из прогонов 480p, которые не получились. Это доказательство, что промпт ищется.", who:"от Кати", size:"1280+", cap:"пока искали промпт"}},
+  slot:{file:"07-fails.mp4", kind:"video", auto:true, ratio:"r174", what:"Неудачные попытки", spec:"Четыре прогона 480p, которые не получились. Играют разом, без звука.", who:"от Кати ✅", size:"1280×740 mp4", cap:"четыре прогона, пока искали промпт"}},
 
 /* 8 */ {tc:"00:19:40:00", take:8, tag:"Инструмент", kicker:"ComfyUI",
   h2:"Это не страшный workflow",
@@ -300,14 +311,22 @@ const S = [
 
 /* 11 */ {tc:"00:33:10:00", take:11, idx:"05", tag:"Опыт",
   h:"Правила, за которые <em>я заплатила</em>",
-  lead:"В финальную генерацию отдаём:",
-  chips:[["Локация",0],["Персонажи",0],["Карта глубины",0],["Сториборд",0],["Кадры из прошлых генераций",1]],
-  note:"Кадр из прошлой генерации — выгорает.",
-  pair:[
-    {file:"11-good.jpg", kind:"img", label:"КАК НАДО", what:"Правильные входы", spec:"Локация + персонажи + карта глубины и что из этого вышло.", who:"от Кати", size:"960×540"},
-    {file:"11-burn.jpg", kind:"img", label:"ВЫГОРЕЛО", what:"Испорченный результат", spec:"Что получилось, когда на вход пошёл кадр из прошлой генерации. Главная картинка слайда.", who:"от Кати", size:"960×540"}]},
+  lead:"В финальную генерацию отдаём это:",
+  note:"Четыре входа — и модель уже не выдумывает заново, а собирает по нашим правилам.",
+  quad:[
+    {file:"11-loc.jpg", kind:"img", label:"ЛОКАЦИЯ", what:"Локация", spec:"Кадр самой локации без персонажей.", who:"от Кати ✅", size:"1280"},
+    {file:"11-board.jpg", kind:"img", label:"СТОРИБОРД", what:"Сториборд", spec:"Раскадровка сцены — что за чем.", who:"от Кати ✅", size:"1280"},
+    {file:"11-char.jpg", kind:"img", label:"ПЕРСОНАЖИ", what:"Персонажи", spec:"Лист персонажа: ракурсы, костюм, детали.", who:"от Кати ✅", size:"1280"},
+    {file:"11-depth.jpg", kind:"img", label:"КАРТА ГЛУБИНЫ", what:"Карта глубины", spec:"Замер движения с того же шота.", who:"от Кати ✅", size:"1280"}]},
 
-/* 12 */ {tc:"00:38:00:00", take:12, idx:"06", tag:"На чём запускать",
+/* 11b */ {tc:"00:35:40:00", take:12, idx:"06", tag:"Опыт", media:true,
+  h:"А это — <em>выгорает</em>",
+  lead:"Кадр из прошлой генерации на входе.",
+  bullets:["модель начинает копировать копию — и картинка рассыпается за несколько итераций",
+           "поэтому на вход идёт исходный материал, а не то, что она уже сгенерировала"],
+  slot:{file:"11-burn.mp4", kind:"video", auto:true, what:"Кадр из прошлой генерации", spec:"Тот самый ролик, кадр из которого пошёл на вход следующей генерации.", who:"от Кати ✅", size:"720p mp4", cap:"отсюда взяли кадр — и следующая посыпалась"}},
+
+/* 12 */ {tc:"00:38:00:00", take:13, idx:"07", tag:"На чём запускать",
   h2:"На чём это идёт",
   lead:"Проверено на наших машинах:",
   rigs:[
@@ -316,15 +335,17 @@ const S = [
     {os:"Windows", specs:["GTX 1050 · 4 ГБ · 16 ГБ RAM"],
      line:"ставится сложнее — были отвалы, чинили"}],
   verdict:"Пойдёт почти на всём — вопрос в скорости.",
-  slot:{file:"12-load.png", kind:"img", fit:"contain", ratio:"r11", what:"Скрин нагрузки", spec:"Живой прогон на MacBook Air M2 8 ГБ.", who:"от Лёши ✅", size:"как есть", cap:"M2 · 8 ГБ · во время прогона"}},
+  load:true},
 
-/* 13 */ {tc:"00:41:20:00", take:13, tag:"Финал", closing:true,
+/* 13 */ {tc:"00:41:20:00", take:14, tag:"Финал", closing:true,
   h:"Что забрать",
   takeaways:["Упрощённый workflow — пришлём в чат","Запись эфира — туда же"],
   big:"Начните с одного шота.",
   bigNote:"Не с проекта и не с ролика целиком. Один шот проходит весь путь за вечер — и дальше уже понятно, что делать."},
 
-/* 14 */ {tc:"00:42:00:00", take:14, questions:true},
+/* 14 */ {tc:"00:42:00:00", take:15, questions:true},
+
+/* 15 */ {tc:"00:47:00:00", take:16, thanks:true},
 
 /* O1 */ {tc:"—", take:"O1", idx:"O1", tag:"Опционально", media:true,
   h:"Установка <em>ComfyUI</em>",
@@ -344,7 +365,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260806-1142";
+const V = "20260806-1231";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -352,13 +373,46 @@ let i0 = 0;
 /* числовой блок вместо картинки — когда доказательство это сумма, а не скрин */
 function statHTML(s){
   if(!s) return "";
-  return `<div style="border:1px solid var(--line);padding:56px 44px;position:relative">
+  return `<div style="border:1px solid var(--line);padding:56px 44px;position:relative;
+      width:700px;height:640px;display:flex;flex-direction:column;justify-content:center;gap:8px">
       <div style="position:absolute;top:14px;left:14px;width:22px;height:22px;border-left:1px solid var(--accent);border-top:1px solid var(--accent)"></div>
       <div style="position:absolute;bottom:14px;right:14px;width:22px;height:22px;border-right:1px solid var(--accent);border-bottom:1px solid var(--accent)"></div>
       <div style="font-family:var(--mono);font-size:96px;line-height:1;color:var(--accent);letter-spacing:-.02em">${s.big}</div>
       <div style="font-family:var(--mono);font-size:19px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-top:18px">${s.under}</div>
       <div style="height:1px;background:var(--line);margin:30px 0"></div>
       <div style="font-size:26px;font-weight:300;line-height:1.35">${s.line}</div>
+    </div>`;
+}
+
+/* Панель нагрузки вместо скрина: скрин показывает ОДИН момент, а важно поведение
+   по проходам — температура коротко бьёт под сотню и садится к 80, память растёт
+   и держится. Рисуем схему, и подписываем, что это схема, а не замер. */
+function loadHTML(){
+  const trace = (id, label, lo, hi, color) => `
+    <div style="display:grid;gap:12px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <span class="tiny">${label}</span>
+        <span data-${id}-val style="font-family:var(--mono);font-size:34px;color:${color};letter-spacing:-.01em">—</span>
+      </div>
+      <svg viewBox="0 0 240 100" preserveAspectRatio="none" style="width:100%;height:132px;display:block;
+           background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+        <path data-${id}-fill fill="${color}" fill-opacity=".10" d=""></path>
+        <path data-${id}-line fill="none" stroke="${color}" stroke-width="1.4" vector-effect="non-scaling-stroke" d=""></path>
+      </svg>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:14px;color:var(--dim)">
+        <span>${lo}</span><span>${hi}</span></div>
+    </div>`;
+  return `<div data-load style="width:1138px;height:640px;border:1px solid var(--line);
+      padding:36px 40px;display:grid;grid-template-rows:auto 1fr 1fr auto;gap:26px;position:relative">
+      <div style="position:absolute;top:14px;left:14px;width:22px;height:22px;border-left:1px solid var(--accent);border-top:1px solid var(--accent)"></div>
+      <div style="position:absolute;bottom:14px;right:14px;width:22px;height:22px;border-right:1px solid var(--accent);border-bottom:1px solid var(--accent)"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:var(--mono);font-size:17px;letter-spacing:.08em;color:var(--ink)">MACBOOK AIR · M2 · 8 ГБ</span>
+        <span data-load-pass style="font-family:var(--mono);font-size:15px;letter-spacing:.1em;color:var(--dim)">ПРОХОД 1</span>
+      </div>
+      ${trace("t","Температура · °C","40","105","var(--accent)")}
+      ${trace("r","Оперативная память · ГБ","0","8","#9CA3AF")}
+      <div class="tiny" style="color:var(--dim)">схема, не замер · так это идёт по проходам</div>
     </div>`;
 }
 
@@ -380,7 +434,10 @@ function slotHTML(s, extraClass){
     ? `<video src="${U(s.file)}" ${s.poster ? `poster="${U(s.poster)}"` : ""} controls preload="metadata" playsinline${
         s.auto ? (s.sync ? ` muted data-auto data-sync="${s.sync}"` : " loop muted data-auto") : ""} data-media></video>`
     : `<img src="${U(s.file)}" alt="" data-media${s.fit === "contain" ? ' class="fit"' : ""}>`;
-  return `<div class="slot ${ratio} ${extraClass || ""}" data-slot="${s.file}">${media}${ph}${lbl}</div>`;
+  // висоту медіа задаємо явно — ширину бере пропорція. Так праві краї
+  // на всіх слайдах стоять на одній лінії, а низ не провисає.
+  const mh = s.mh ? ` style="--mh:${s.mh}px"` : "";
+  return `<div class="slot ${ratio} ${extraClass || ""}"${mh} data-slot="${s.file}">${media}${ph}${lbl}</div>`;
 }
 
 function bullets(list){
@@ -433,20 +490,20 @@ function build(){
         </div>`;
 
     } else if(d.media){
-      /* слайд, где главное — сам ролик: текст ужимаем, медиа отдаём максимум высоты */
+      /* слайд, где главное — сам ролик: медиа берёт всю высоту тела, текст рядом */
       body = `${eyebrow}
         ${d.h ? `<h2 class="st head" style="--i:1">${d.h}</h2>` : ""}
-        <div class="grid" style="grid-template-columns:.58fr 1.42fr">
+        <div class="grid">
           <div class="col-text">
             ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
             ${bullets(d.bullets)}
           </div>
-          <div class="col-media st" style="--i:3">${slotHTML(d.slot, "fill")}</div>
+          <div class="col-media st" style="--i:3">${slotHTML(d.slot)}</div>
         </div>`;
 
     } else if(d.full){
       body = `${eyebrow}
-        <div style="margin-top:36px;flex:1;min-height:0">${slotHTML(d.slot, "fill")}</div>`;
+        <div class="grid g-wide" style="justify-items:center">${slotHTML(d.slot)}</div>`;
 
     } else if(d.questions){
       body = `<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:0;text-align:center;width:100%">
@@ -456,28 +513,51 @@ function build(){
             <p class="tiny st" style="--i:2;margin-top:16px;color:#3a3a3a">дальше — два запасных слайда, по спросу зала</p>
           </div></div>`;
 
+    } else if(d.thanks){
+      body = `<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:0;text-align:center;width:100%">
+          <div>
+            <h1 class="st" style="--i:0">Спасибо за<br><span>внимание</span></h1>
+            <div class="rule st" style="--i:1;margin:44px auto 34px;max-width:420px"></div>
+            <p class="lead st" style="--i:2;margin:0 auto;max-width:34ch">Workflow и запись эфира — в чате.</p>
+            <p class="tiny st" style="--i:3;margin-top:44px">Катя · КБК · 06.08.2026</p>
+          </div></div>`;
+
+    } else if(d.quad){
+      /* четыре входа одной сеткой 2×2 — это перечень, а не иллюстрация */
+      body = `${eyebrow}
+        <h2 class="st head" style="--i:1">${d.h}</h2>
+        <div class="grid">
+          <div class="col-text">
+            ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
+            ${d.note ? `<p class="note st" style="--i:3">${d.note}</p>` : ""}
+          </div>
+          <div class="col-media quad st" style="--i:4">
+            ${d.quad.map(p=>slotHTML(Object.assign({mh:311},p))).join("")}
+          </div>
+        </div>`;
+
     } else if(d.closing){
       body = `${eyebrow}
         <h2 class="st head" style="--i:1">${d.h}</h2>
-        <div class="grid g-split">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:80px">
           <div class="col-text">
             <div class="rows">
-              ${d.takeaways.map((t,k)=>`<div class="row st" style="--i:${k+2}"><span class="num">${String(k+1).padStart(2,"0")}</span><div><div class="k" style="font-size:21px">${t}</div></div></div>`).join("")}
+              ${d.takeaways.map((t,k)=>`<div class="row st" style="--i:${k+2};padding:34px 0"><span class="num">${String(k+1).padStart(2,"0")}</span><div><div class="k" style="font-size:26px;line-height:1.35">${t}</div></div></div>`).join("")}
             </div>
           </div>
           <div class="col-text">
-            <h2 class="st" style="--i:4" style="line-height:1.1"><em>${d.big}</em></h2>
-            ${d.bigNote ? `<p class="note st" style="--i:5;margin-top:4px">${d.bigNote}</p>` : ""}
+            <h2 class="st" style="--i:4"><em>${d.big}</em></h2>
+            ${d.bigNote ? `<p class="note st" style="--i:5">${d.bigNote}</p>` : ""}
           </div>
         </div>`;
 
     } else if(d.steps){
       body = `${eyebrow}
         <h2 class="st head" style="--i:1">${d.h2}</h2>
-        <div class="grid g-3" style="margin-top:52px;align-items:stretch">
-          ${d.steps.map((s,k)=>`<div class="col-media st" style="--i:${k+2};gap:16px;justify-content:flex-start">
+        <div class="grid g-3">
+          ${d.steps.map((s,k)=>`<div class="st" style="--i:${k+2};display:grid;gap:18px;align-content:center">
               ${slotHTML(s.slot)}
-              <div style="display:flex;gap:16px;align-items:baseline;flex:0 0 auto">
+              <div style="display:flex;gap:16px;align-items:baseline">
                 <span class="num" style="font-family:var(--mono);font-size:19px;color:var(--accent)">${s.n}</span>
                 <div><div class="k" style="font-family:var(--mono);font-size:20px;text-transform:uppercase;letter-spacing:.03em">${s.k}</div>
                 <div class="v" style="font-size:18px;font-weight:300;color:var(--mute);margin-top:8px">${s.v}</div></div>
@@ -487,7 +567,7 @@ function build(){
     } else if(d.knobs){
       body = `${eyebrow}
         <h2 class="st head" style="--i:1">${d.h2}</h2>
-        <div class="grid" style="grid-template-columns:1fr 1.28fr">
+        <div class="grid">
           <div class="col-text">
             <div class="rows">
               ${d.knobs.map((k,n2)=>`<div class="row st" style="--i:${n2+2}"><span class="num">${String(n2+1).padStart(2,"0")}</span>
@@ -500,30 +580,38 @@ function build(){
     } else if(d.rigs){
       body = `${eyebrow}
         <h2 class="st head" style="--i:1">${d.h2}</h2>
-        <p class="lead st" style="--i:2;margin-top:14px;max-width:none">${d.lead}</p>
-        <div class="grid g-split" style="margin-top:36px">
-          <div class="col-text" style="gap:26px">
+        <div class="grid">
+          <div class="col-text" style="gap:24px">
+            <p class="lead st" style="--i:2">${d.lead}</p>
             ${d.rigs.map((r,n2)=>`<div class="st" style="--i:${n2+3}">
                 <div style="font-family:var(--mono);font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);padding-bottom:10px;border-bottom:1px solid var(--line)">${r.os}</div>
                 <div style="margin-top:14px;display:grid;gap:7px">
                   ${r.specs.map(t=>`<div style="font-family:var(--mono);font-size:19px;color:var(--mute)">${t}</div>`).join("")}
                 </div>
                 <div style="margin-top:12px;font-size:22px;font-weight:300">${r.line}</div></div>`).join("")}
-            <h2 class="st" style="--i:5;font-size:34px;margin-top:8px;line-height:1.25"><em>${d.verdict}</em></h2>
+            <h2 class="st" style="--i:5;font-size:34px;line-height:1.25"><em>${d.verdict}</em></h2>
           </div>
-          <div class="col-media st" style="--i:6">${slotHTML(d.slot)}</div>
+          <div class="col-media st" style="--i:6">${loadHTML()}</div>
         </div>`;
 
     } else if(d.pair){
+      /* 🔴 Пара — это ОДИН объект сравнения: два кадра рядом, во всю ширину полосы,
+         левый край по заголовку, правый по краю медиа остальных слайдов.
+         Текст уходит НАД парой в две колонки — иначе пара не влезает по высоте
+         и справа снова открывается дыра. */
       body = `${eyebrow}
         ${d.h ? `<h2 class="st head" style="--i:1">${d.h}</h2>` : ""}
-        <div class="grid g-split">
-          <div class="col-text">
-            ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
-            ${d.chips ? `<div class="chips st" style="--i:3">${d.chips.map(c=>`<span class="chip ${c[1]?"no":""}">${c[1]?"— ":""}${c[0]}</span>`).join("")}</div>` : ""}
-            ${d.note ? `<p class="note st" style="--i:4">${d.note}</p>` : ""}
-            ${bullets(d.bullets)}
-            ${d.foot ? `<p class="tiny st" style="--i:6;margin-top:10px;color:var(--accent)">${d.foot}</p>` : ""}
+        <div class="grid g-rows">
+          <div class="pairtext">
+            <div class="col-text" style="justify-content:flex-start;gap:18px">
+              ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
+              ${d.note ? `<p class="note st" style="--i:4">${d.note}</p>` : ""}
+              ${d.foot ? `<p class="tiny st" style="--i:6;color:var(--accent)">${d.foot}</p>` : ""}
+            </div>
+            <div class="col-text" style="justify-content:flex-start;gap:18px">
+              ${d.chips ? `<div class="chips st" style="--i:3">${d.chips.map(c=>`<span class="chip ${c[1]?"no":""}">${c[1]?"— ":""}${c[0]}</span>`).join("")}</div>` : ""}
+              ${bullets(d.bullets)}
+            </div>
           </div>
           <div class="col-media duo st" style="--i:5">
             ${d.pair.map(p=>slotHTML(p)).join("")}
@@ -533,7 +621,7 @@ function build(){
     } else {
       body = `${eyebrow}
         ${d.h || d.h2 ? `<h2 class="st head" style="--i:1">${d.h || d.h2}</h2>` : ""}
-        <div class="grid g-split">
+        <div class="grid">
           <div class="col-text">
             ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
             ${bullets(d.bullets)}
@@ -560,6 +648,62 @@ function build(){
   });
 
   wireSync(st);
+  wireLoad(st);
+}
+
+/* ---- модель нагрузки (см. loadHTML) --------------------------------------
+   Проход длится P секунд: разгон → пик под сотню → сброс к рабочим 80 →
+   короткий отдых между проходами. Память набирается на первом проходе
+   и дальше только подрастает — она и есть настоящее ограничение. */
+const RIG_P = 9;
+function rigTemp(s){
+  const k = ((s % RIG_P) + RIG_P) % RIG_P;
+  if(k < 1.5) return 58 + (99 - 58) * (k / 1.5);
+  if(k < 4.2) return 99 - (99 - 80) * ((k - 1.5) / 2.7);
+  if(k < 8.0) return 80 + Math.sin(s * 2.3) * 2.4;
+  return 80 - (80 - 58) * ((k - 8.0) / 1.0);
+}
+function rigRam(s){
+  const k = ((s % RIG_P) + RIG_P) % RIG_P;
+  const peak = [5.2, 6.0, 6.5, 6.8][Math.min(3, Math.max(0, Math.floor(s / RIG_P) % 4))];
+  const base = 1.6;
+  if(k < 2.2) return base + (peak - base) * (k / 2.2);
+  if(k < 8.0) return peak + Math.sin(s * 1.4) * .13;
+  return peak - (peak - base) * ((k - 8.0) / 1.0);
+}
+function wireLoad(root){
+  const box = root.querySelector("[data-load]");
+  if(!box) return;
+  const N = 240, DT = .07;               // окно ≈ 17 секунд истории
+  const q = s => box.querySelector(s);
+  const el = {tl:q("[data-t-line]"), tf:q("[data-t-fill]"), tv:q("[data-t-val]"),
+              rl:q("[data-r-line]"), rf:q("[data-r-fill]"), rv:q("[data-r-val]"),
+              pass:q("[data-load-pass]")};
+  const t0 = performance.now() / 1000;
+  const draw = () => {
+    const now = performance.now() / 1000 - t0;
+    if(box.closest(".slide").classList.contains("on")){
+      const build = (fn, lo, hi) => {
+        let d = "";
+        for(let x = 0; x < N; x++){
+          const v = fn(now - (N - 1 - x) * DT);
+          const y = 100 - (v - lo) / (hi - lo) * 100;
+          d += (x ? "L" : "M") + x + "," + y.toFixed(2) + " ";
+        }
+        return d;
+      };
+      const dt = build(rigTemp, 40, 105), dr = build(rigRam, 0, 8);
+      el.tl.setAttribute("d", dt);
+      el.tf.setAttribute("d", dt + `L${N-1},100 L0,100 Z`);
+      el.rl.setAttribute("d", dr);
+      el.rf.setAttribute("d", dr + `L${N-1},100 L0,100 Z`);
+      el.tv.textContent = Math.round(rigTemp(now)) + " °C";
+      el.rv.textContent = rigRam(now).toFixed(1).replace(".", ",") + " ГБ";
+      el.pass.textContent = "ПРОХОД " + (Math.floor(now / RIG_P) % 4 + 1);
+    }
+    requestAnimationFrame(draw);
+  };
+  draw();
 }
 
 /* Ролики одной группы (data-sync) — это один и тот же шот в трёх состояниях.
