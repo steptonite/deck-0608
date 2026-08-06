@@ -13,12 +13,19 @@
   --bg:#080808; --ink:#F3F4F6; --mute:#9CA3AF; --dim:#6B6B6B;
   --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.16);
   --accent:#E85D22;
+  /* 🗡 курсор — кинжал: стальной клинок в чёрной обводке (читается и на белой
+     карте глубины, и на чёрном поле), оранжевая гарда и навершие — акцент деки.
+     Остриё = точка клика, поэтому hotspot 3 3. */
+  --cur:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><g fill='none' stroke='%23090909' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'><path d='M3,3L20,14.5L14.5,20Z'/><path d='M10.5,22.5L22.5,10.5'/><path d='M18,18L26,26'/><circle cx='28.6' cy='28.6' r='2.9'/></g><path d='M3,3L20,14.5L14.5,20Z' fill='%23E8E9EC'/><path d='M10.5,22.5L22.5,10.5' stroke='%23E85D22' stroke-width='3.4' stroke-linecap='round'/><path d='M18,18L26,26' stroke='%23BFC0C6' stroke-width='3' stroke-linecap='round'/><circle cx='28.6' cy='28.6' r='2.9' fill='%23E85D22'/></svg>") 3 3, default;
   --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
   /* плівкове зерно — тим самим шумом і поле, і літери */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Mont',system-ui,sans-serif;overflow:hidden}
+/* кинжал держим на всей деке, а не только на body: иначе над картинками и
+   панелями возвращается системная стрелка и вайб рассыпается */
+html,body,.slide,.slot,.cmp,#lens,#help,#todo{cursor:var(--cur)}
 
 /* ---------- сцена 1920x1080, масштабується під вікно ---------- */
 #stage{width:1920px;height:1080px;position:fixed;left:50%;top:50%;transform-origin:center center}
@@ -184,7 +191,7 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
    полоса — і тільки за курсором. Два кадри — той самий шот: знизу карта
    глибини, зверху фінал, обрізаний по полосі. Пропорції однакові (1920×1072),
    тому вони лягають пікселем у піксель і «до/після» читається без пояснень. */
-.cmp{position:absolute;inset:0;overflow:hidden;cursor:ew-resize}
+.cmp{position:absolute;inset:0;overflow:hidden}
 .cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .cmp img.front{clip-path:inset(0 0 0 var(--cx))}
 /* завеса под текст: слева глухо, справа кадр должен читаться — иначе финал
@@ -197,8 +204,29 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
   border:1px solid rgba(232,93,34,.85);background:rgba(8,8,8,.45)}
 .cmp-lab{position:absolute;bottom:118px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);white-space:nowrap}
-.cmp-lab.l{right:18px;text-align:right}
-.cmp-lab.r{left:18px;color:var(--accent)}
+.cmp-lab.l{right:18px;text-align:right;color:var(--accent)}   /* слева финальный кадр — он и акцент */
+.cmp-lab.r{left:18px}
+/* текст обложки лежит ПОВЕРХ компарера — и раньше глотал pointermove:
+   курсор заезжал на заголовок, и полоса замирала. События теперь слушает
+   весь слайд (см. wireCompare), а сам текст выведен из-под указателя. */
+.cover-text{position:relative;padding:0 80px;max-width:1100px;pointer-events:none;user-select:none}
+
+/* ---------- фото: панорама под курсором + просмотр во весь экран ----------
+   Кадры в слотах обрезаны по пропорции слота. Пока курсор идёт по кадру —
+   кадр едет под ним (object-position), то есть видно ровно то, что съела
+   обрезка. Клик — открыть оригинал во весь экран. */
+.slot img{transition:object-position .4s cubic-bezier(.16,1,.3,1)}
+.slot .open{position:absolute;left:14px;bottom:14px;z-index:4;padding:6px 13px;
+  background:rgba(8,8,8,.74);border:1px solid var(--line-2);font-family:var(--mono);
+  font-size:13px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;
+  opacity:0;transition:opacity .22s;pointer-events:none}
+.slot:hover .open{opacity:1}
+#lens{position:fixed;inset:0;z-index:90;display:none;background:rgba(5,5,5,.975);
+  align-items:center;justify-content:center;padding:40px}
+#lens.on{display:flex}
+#lens img{max-width:94vw;max-height:88vh;object-fit:contain;border:1px solid var(--line-2)}
+#lens .lcap{position:fixed;left:0;right:0;bottom:24px;text-align:center;font-family:var(--mono);
+  font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
 /* ---------- керування ---------- */
 #bar{position:fixed;left:0;bottom:0;height:2px;background:var(--accent);z-index:70;transition:width .3s cubic-bezier(.16,1,.3,1)}
@@ -254,6 +282,9 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 </div>
 
 <div id="todo"><h3>Что ещё не подставлено</h3><div id="todo-body"></div></div>
+<!-- просмотрщик кадров: лежит ВНЕ #stage, потому что stage отмасштабирован под
+     экран — внутри него картинка открылась бы в том же уменьшенном масштабе -->
+<div id="lens"><img alt=""><div class="lcap"></div></div>
 
 <script>
 /* ============================================================
@@ -265,10 +296,11 @@ const S = [
 
 /* 1 */ {tc:"00:00:00:00", take:1, cover:true,
   /* Обложка статичная, но фон — компарер: полоса идёт за курсором.
-     Оба файла — ОДИН И ТОТ ЖЕ кадр (1920×1072), поэтому ложатся пиксель в пиксель:
-     слева от полосы карта глубины, справа финальный кадр. Тема эфира — одним движением. */
-  compare:{back:{file:"01-cover-depth.jpg", label:"КАРТА ГЛУБИНЫ"},
-           front:{file:"01-cover.jpg", label:"ФИНАЛЬНЫЙ КАДР"}, at:57}},
+     Оба файла — ОДИН И ТОТ ЖЕ кадр (1920×1072), поэтому ложатся пиксель в пиксель.
+     🔴 06.08 (v2, по правке): стороны перевёрнуты — СЛЕВА финальный кадр (он же
+     под текстом, как в макете), СПРАВА карта глубины. Тема эфира — одним движением. */
+  compare:{back:{file:"01-cover.jpg", label:"ФИНАЛЬНЫЙ КАДР"},
+           front:{file:"01-cover-depth.jpg", label:"КАРТА ГЛУБИНЫ"}, at:57}},
 
 /* 2 */ {tc:"00:01:40:00", take:2, full:true, tag:"Результат",
   slot:{file:"03-final.mp4", kind:"video", auto:true, mh:780, what:"Финальный ролик — «что получилось»", spec:"Заводится сам в цикле, замьючен. Звук — рукой. Комментарий после: «это одна дорогая генерация, а не двадцать».", who:"от Кати ✅", size:"720p mp4, H.264"}},
@@ -393,7 +425,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260806-1251";
+const V = "20260806-1534";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -502,7 +534,7 @@ function build(){
             <span class="cmp-grip"></span>
           </div>
         </div>
-        <div style="position:relative;padding:0 80px;max-width:1100px">
+        <div class="cover-text">
           <div class="eyebrow st" style="--i:0"><span>КБК — эфир</span><i></i><span>06.08.2026</span></div>
           <h1 class="st" style="--i:1;margin-top:38px">Управляемое<br><span>движение</span></h1>
           <div class="rule st" style="--i:2;margin:44px 0 34px;max-width:560px"></div>
@@ -684,11 +716,14 @@ function build(){
   wireSync(st);
   wireLoad(st);
   wireCompare(st);
+  wireMedia(st);
 }
 
 /* Полоса обложки идёт за курсором. Координату считаем от рамки самого блока
    (getBoundingClientRect), а не от окна: сцена отмасштабирована под экран,
-   и проценты окна дали бы промах. Клик по обложке по-прежнему листает дальше. */
+   и проценты окна дали бы промах. Клик по обложке по-прежнему листает дальше.
+   🔴 06.08: слушаем ВЕСЬ СЛАЙД, а не сам блок. Текст обложки лежит поверх
+   картинки, и пока курсор шёл по заголовку, полоса замирала. */
 function wireCompare(root){
   const box = root.querySelector("[data-cmp]");
   if(!box) return;
@@ -698,9 +733,49 @@ function wireCompare(root){
     const p = (e.clientX - r.left) / r.width * 100;
     box.style.setProperty("--cx", Math.max(2, Math.min(98, p)).toFixed(2) + "%");
   };
-  box.addEventListener("pointermove", move);
-  box.addEventListener("pointerdown", move);
+  const slide = box.closest(".slide") || box;
+  slide.addEventListener("pointermove", move);
+  slide.addEventListener("pointerdown", move);
 }
+
+/* Кадры в слотах: пока курсор идёт по кадру — кадр едет под ним, видно то,
+   что съела обрезка слота. Клик — оригинал во весь экран (#lens).
+   Ролики не трогаем: у них свои controls. */
+function wireMedia(root){
+  root.querySelectorAll("[data-slot]").forEach(box => {
+    const img = box.querySelector("img[data-media]");
+    if(!img) return;
+    box.insertAdjacentHTML("beforeend", `<div class="open">клик — во весь экран</div>`);
+    const live = () => img.naturalWidth > 0;            // файла нет → заглушка, не трогаем
+    box.addEventListener("pointermove", e => {
+      if(!live() || img.classList.contains("fit")) return;  // «вписанному» кадру ехать некуда
+      const r = box.getBoundingClientRect();
+      if(!r.width) return;
+      const c = v => Math.max(0, Math.min(100, v)).toFixed(1);
+      img.style.transition = "none";                   // на ходу — без догоняющей анимации
+      img.style.objectPosition = c((e.clientX - r.left) / r.width * 100) + "% "
+                              + c((e.clientY - r.top) / r.height * 100) + "%";
+    });
+    box.addEventListener("pointerleave", () => {       // ушли — кадр плавно возвращается в центр
+      img.style.transition = "";
+      img.style.objectPosition = "";
+    });
+    box.addEventListener("click", e => {
+      if(!live()) return;
+      e.stopPropagation();                             // иначе тот же клик пролистнёт слайд
+      openLens(img, box.querySelector(".cap"));
+    });
+  });
+}
+function openLens(img, cap){
+  const l = document.getElementById("lens");
+  l.querySelector("img").src = img.currentSrc || img.src;
+  l.querySelector(".lcap").textContent =
+    (cap ? cap.textContent.trim() + " · " : "") + "клик или esc — закрыть";
+  l.classList.add("on");
+}
+function closeLens(){ document.getElementById("lens").classList.remove("on"); }
+function lensOpen(){ return document.getElementById("lens").classList.contains("on"); }
 
 /* ---- модель нагрузки (см. loadHTML) --------------------------------------
    Проход длится P секунд: разгон → пик под сотню → сброс к рабочим 80 →
@@ -817,6 +892,8 @@ function todo(){
 
 addEventListener("keydown", e => {
   const k = e.key;
+  // кадр открыт во весь экран — любая клавиша закрывает его, а не листает деку
+  if(lensOpen()){ e.preventDefault(); closeLens(); return; }
   if(k === "Escape"){ panel("help", false); return; }
   if(k === "?" || k === "/"){ panel("help"); return; }
   if(k === "t" || k === "T" || k === "е" || k === "Е"){ todo(); return; }
@@ -829,6 +906,7 @@ addEventListener("keydown", e => {
   if(k === "End") show(999);
 });
 addEventListener("click", e => {
+  if(lensOpen()){ closeLens(); return; }              // клик по открытому кадру — закрыть
   if(e.target.closest("video, #help, #todo")) return;
   show(i0 + (e.clientX < innerWidth * .22 ? -1 : 1));
 });
