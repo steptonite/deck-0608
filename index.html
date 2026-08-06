@@ -28,25 +28,33 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Mont',s
 #grain{position:fixed;inset:-100px;pointer-events:none;z-index:64;opacity:.10;
   background-image:var(--grain);background-size:260px 260px;mix-blend-mode:overlay}
 
-/* помаранчевий не заливкою, а зернистою фарбою */
+/* помаранчевий не заливкою, а зернистою фарбою; градієнт повільно перетікає */
 .tex,h1 span,h2 em,.row .num,.eyebrow b,.ph .id{color:var(--accent);
-  background-image:var(--grain),linear-gradient(104deg,#F5814B 0%,#E85D22 38%,#C9491A 72%,#F0703A 100%);
-  background-size:200px 200px,100% 100%;background-blend-mode:overlay,normal;
+  background-image:var(--grain),linear-gradient(104deg,#C9491A 0%,#F5814B 22%,#E85D22 46%,#C9491A 68%,#F0703A 86%,#C9491A 100%);
+  background-size:200px 200px,320% 100%;background-blend-mode:overlay,normal;
+  background-position:0 0,0% 50%;
   -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;color:transparent}
+  -webkit-text-fill-color:transparent;color:transparent;
+  animation:flow 14s linear infinite}
+@keyframes flow{from{background-position:0 0,0% 50%}to{background-position:0 0,100% 50%}}
 @supports not ((-webkit-background-clip:text) or (background-clip:text)){
   .tex,h1 span,h2 em,.row .num,.eyebrow b,.ph .id{-webkit-text-fill-color:var(--accent);color:var(--accent);background:none}}
 
+/* 🔴 СІТКА (06.08): верхня лінія 96px — якір, тіло тягнеться до підвалу.
+   Порожнього низу бути не може: за низ відповідає тіло, а не «як вийде». */
 .slide{position:absolute;inset:0;padding:96px 80px 116px;display:none;opacity:0;
   flex-direction:column;justify-content:flex-start}
 /* по центру — только те слайды, где нет тела: обложка, живое демо, вопросы */
 .slide.mid{justify-content:center}
-.slide.on{display:flex;animation:in .42s cubic-bezier(.16,1,.3,1) forwards}
+.slide.on{display:flex;animation:in .5s cubic-bezier(.16,1,.3,1) forwards}
 .slide.cover-slide{padding:0}
-@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* 🔴 слайд НЕ їде: тільки прояв. Рух лишається за вмістом (.st), інакше стрибає весь кадр */
+@keyframes in{from{opacity:0}to{opacity:1}}
 .slide.on .st{animation:rise .5s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*70ms + 60ms)}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.slide.on,.slide.on .st{animation:none!important;opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .slide.on,.slide.on .st,.tex,h1 span,h2 em,.row .num,.eyebrow b,.ph .id,
+  .chrome .grow::after{animation:none!important;opacity:1}}
 
 /* ---------- службова типографіка ---------- */
 .eyebrow{display:flex;align-items:center;gap:18px;font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:400}
@@ -67,10 +75,17 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .chrome{position:absolute;left:80px;right:80px;bottom:44px;display:flex;align-items:center;
   gap:26px;font-family:var(--mono);font-size:15px;color:var(--dim);letter-spacing:.05em}
 .chrome .sep{width:1px;height:12px;background:var(--line-2)}
-.chrome .grow{flex:1;height:7px;align-self:flex-end;margin-bottom:3px;
+.chrome .grow{position:relative;flex:1;height:7px;align-self:flex-end;margin-bottom:3px;overflow:hidden;
   background-image:repeating-linear-gradient(90deg,var(--line-2) 0 1px,transparent 1px 16px);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+/* світло повільно йде вздовж рисок — риски «дихають» яскравістю, а не блимають */
+.chrome .grow::after{content:"";position:absolute;inset:0;width:38%;
+  background-image:repeating-linear-gradient(90deg,rgba(232,93,34,.85) 0 1px,transparent 1px 16px);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 45%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 45%,transparent);
+  animation:sweep 7s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes sweep{0%{transform:translateX(-40%)}50%{transform:translateX(300%)}100%{transform:translateX(-40%)}}
 .chrome .take{position:relative;color:#D1D5DB;padding-left:13px}
 .chrome .take::before{content:"";position:absolute;left:0;top:-4px;width:7px;height:7px;
   border-left:1px solid var(--accent);border-top:1px solid var(--accent)}
@@ -82,14 +97,34 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .corner.bl{bottom:34px;left:34px;border-right:0;border-top:0}
 .corner.br{bottom:34px;right:34px;border-left:0;border-top:0}
 
-/* ---------- сітки ---------- */
-.grid{display:grid;gap:56px;margin-top:44px}
-.g-split{grid-template-columns:1.15fr .85fr;align-items:start}
+/* ---------- сітки ----------
+   🔴 Тіло слайда ЗАВЖДИ забирає всю висоту до підвалу (flex:1).
+   Текстова колонка тримає верхню лінію, медіа-колонка тягнеться на весь зріст —
+   тому низ не буває порожнім, а колонки вирівняні одна з одною. */
+/* 🔴 Заголовок слайда — на ОДНІЙ лінії для всіх: його не треба шукати очима */
+.head{margin-top:40px}
+.head + .grid,.head + p + .grid{margin-top:40px}
+.grid{display:grid;gap:56px;margin-top:44px;flex:1;min-height:0;align-items:stretch}
+.g-split{grid-template-columns:1fr 1.04fr}
 .g-wide{grid-template-columns:1fr}
 .g-2{grid-template-columns:1fr 1fr;gap:40px}
-.g-3{grid-template-columns:repeat(3,1fr);gap:36px}
+.g-3{grid-template-columns:repeat(3,1fr);gap:36px;align-items:start}
 .stack{display:flex;flex-direction:column;gap:26px}
 .stack.tight{gap:16px}
+/* 🔴 ЯКІР — не верх вмісту, а службовий eyebrow: він однаковий на всіх слайдах,
+   тому верхня лінія не стрибає. Сам вміст обох колонок центрується по вертикалі —
+   інакше короткий текст «прилипає доверху», а під ним лишається діра. */
+/* 🔴 Обидві колонки стартують від ОДНІЄЇ лінії під заголовком — щоб на всіх
+   слайдах око знало, куди дивитись. Порожнеча збирається внизу однією смугою,
+   а не розкидається між блоками. */
+.col-text{display:flex;flex-direction:column;gap:26px;justify-content:flex-start;min-height:0}
+/* медіа: пропорцію не ламаємо ніколи */
+.col-media{display:flex;flex-direction:column;gap:18px;min-height:0;justify-content:flex-start}
+.col-media .slot{width:100%;margin-inline:auto}
+/* пара: два кадри 16:9 мають влізти у висоту тіла, тому колонку звужуємо під них,
+   а не ламаємо пропорцію. Праві краї всіх слайдів лишаються на одній лінії. */
+.col-media.duo{max-width:600px;margin-left:auto;width:100%}
+
 
 /* ---------- список «ручок» / кроків ---------- */
 .rows{display:flex;flex-direction:column}
@@ -112,6 +147,8 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .slot.r32{aspect-ratio:3/2}
 .slot.r11{aspect-ratio:1/1}
 .slot img{width:100%;height:100%;object-fit:cover;display:block;background:#0E0E0E}
+/* скріни й колажі різати не можна — там дані, а не настрій */
+.slot img.fit{object-fit:contain;background:#0A0A0A}
 .slot video{width:100%;height:100%;object-fit:contain;display:block;background:#0A0A0A}
 /* слот, который тянется по высоте родителя, а не по пропорции */
 .slot.fill{aspect-ratio:auto;height:100%}
@@ -238,13 +275,13 @@ const S = [
   h:"Это не волшебная <em>таблетка</em>.",
   lead:"Промпт всё равно придётся искать.<br>Просто теперь — за копейки.",
   bullets:["написала → отправила → ерунда → переписала","и только с уверенным промптом — в дорогое качество"],
-  slot:{file:"07-fails.jpg", kind:"img", ratio:"r43", what:"Неудачные попытки", spec:"3–4 кадра или коллаж из прогонов 480p, которые не получились. Это доказательство, что промпт ищется.", who:"от Кати", size:"1280+", cap:"пока искали промпт"}},
+  slot:{file:"07-fails.jpg", kind:"img", fit:"contain", ratio:"r43", what:"Неудачные попытки", spec:"3–4 кадра или коллаж из прогонов 480p, которые не получились. Это доказательство, что промпт ищется.", who:"от Кати", size:"1280+", cap:"пока искали промпт"}},
 
 /* 8 */ {tc:"00:19:40:00", take:8, tag:"Инструмент", kicker:"ComfyUI",
   h2:"Это не страшный workflow",
   lead:"Загрузить видео → снять карту → сохранить.",
   bullets:["узлов пять, смысловой — один: AIO Preprocessor","ничего не обучаем — просто снимаем замер"],
-  slot:{file:"08-workflow.png", kind:"img", what:"Настоящий скрин ComfyUI", spec:"Наш aio_preprocessor. Реальный скрин, не схема.", who:"от Лёши ✅", size:"1920×1080", cap:"тот самый workflow — его и пришлём в чат"}},
+  slot:{file:"08-workflow.png", kind:"img", fit:"contain", what:"Настоящий скрин ComfyUI", spec:"Наш aio_preprocessor. Реальный скрин, не схема.", who:"от Лёши ✅", size:"1920×1080", cap:"тот самый workflow — его и пришлём в чат"}},
 
 /* 9 */ {tc:"00:22:00:00", take:9, tag:"Демонстрация",
   live:{big:"Живое демо", lead:"Показываем прямо сейчас, без записи.",
@@ -259,7 +296,7 @@ const S = [
     {k:"AIO Resolution", v:"512 по короткой стороне — на этом размере считаем"},
     {k:"AIO Preprocessor", v:"один узел, переключатель типа карты"},
     {k:"Resize Video", v:"растягиваем до 1280 на выходе — чтобы площадки приняли ролик как 720p"}],
-  slot:{file:"10-nodes.png", kind:"img", ratio:"r32", what:"Скрин узлов", spec:"Те же узлы со значениями, которые видно.", who:"от Лёши ✅", size:"1920×1080"}},
+  slot:{file:"10-nodes.png", kind:"img", fit:"contain", ratio:"r32", what:"Скрин узлов", spec:"Те же узлы со значениями, которые видно.", who:"от Лёши ✅", size:"1920×1080"}},
 
 /* 11 */ {tc:"00:33:10:00", take:11, idx:"05", tag:"Опыт",
   h:"Правила, за которые <em>я заплатила</em>",
@@ -279,12 +316,13 @@ const S = [
     {os:"Windows", specs:["GTX 1050 · 4 ГБ · 16 ГБ RAM"],
      line:"ставится сложнее — были отвалы, чинили"}],
   verdict:"Пойдёт почти на всём — вопрос в скорости.",
-  slot:{file:"12-load.png", kind:"img", ratio:"r11", what:"Скрин нагрузки", spec:"Живой прогон на MacBook Air M2 8 ГБ.", who:"от Лёши ✅", size:"как есть", cap:"M2 · 8 ГБ · во время прогона"}},
+  slot:{file:"12-load.png", kind:"img", fit:"contain", ratio:"r11", what:"Скрин нагрузки", spec:"Живой прогон на MacBook Air M2 8 ГБ.", who:"от Лёши ✅", size:"как есть", cap:"M2 · 8 ГБ · во время прогона"}},
 
 /* 13 */ {tc:"00:41:20:00", take:13, tag:"Финал", closing:true,
-  h:"Забрать",
+  h:"Что забрать",
   takeaways:["Упрощённый workflow — пришлём в чат","Запись эфира — туда же"],
-  big:"Приносите свой шот."},
+  big:"Начните с одного шота.",
+  bigNote:"Не с проекта и не с ролика целиком. Один шот проходит весь путь за вечер — и дальше уже понятно, что делать."},
 
 /* 14 */ {tc:"00:42:00:00", take:14, questions:true},
 
@@ -306,7 +344,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260806-1112";
+const V = "20260806-1142";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -341,7 +379,7 @@ function slotHTML(s, extraClass){
   const media = s.kind === "video"
     ? `<video src="${U(s.file)}" ${s.poster ? `poster="${U(s.poster)}"` : ""} controls preload="metadata" playsinline${
         s.auto ? (s.sync ? ` muted data-auto data-sync="${s.sync}"` : " loop muted data-auto") : ""} data-media></video>`
-    : `<img src="${U(s.file)}" alt="" data-media>`;
+    : `<img src="${U(s.file)}" alt="" data-media${s.fit === "contain" ? ' class="fit"' : ""}>`;
   return `<div class="slot ${ratio} ${extraClass || ""}" data-slot="${s.file}">${media}${ph}${lbl}</div>`;
 }
 
@@ -383,7 +421,7 @@ function build(){
 
     } else if(d.live){
       body = `${eyebrow}
-        <div style="display:grid;place-items:center;flex:1;min-height:0;text-align:center">
+        <div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:0;text-align:center;width:100%">
           <div>
             <h1 class="st" style="--i:1">${d.live.big.replace(/ (\S+)$/, " <span>$1</span>")}</h1>
             <p class="lead st" style="--i:2;margin:26px auto 0;max-width:34ch">${d.live.lead}</p>
@@ -397,13 +435,13 @@ function build(){
     } else if(d.media){
       /* слайд, где главное — сам ролик: текст ужимаем, медиа отдаём максимум высоты */
       body = `${eyebrow}
-        <div style="display:grid;grid-template-columns:.58fr 1.42fr;gap:56px;margin-top:44px;flex:1;min-height:0;align-items:stretch">
-          <div class="stack">
-            ${d.h ? `<h2 class="st" style="--i:1">${d.h}</h2>` : ""}
+        ${d.h ? `<h2 class="st head" style="--i:1">${d.h}</h2>` : ""}
+        <div class="grid" style="grid-template-columns:.58fr 1.42fr">
+          <div class="col-text">
             ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
             ${bullets(d.bullets)}
           </div>
-          <div class="st" style="--i:3;min-height:0">${slotHTML(d.slot, "fill")}</div>
+          <div class="col-media st" style="--i:3">${slotHTML(d.slot, "fill")}</div>
         </div>`;
 
     } else if(d.full){
@@ -411,7 +449,7 @@ function build(){
         <div style="margin-top:36px;flex:1;min-height:0">${slotHTML(d.slot, "fill")}</div>`;
 
     } else if(d.questions){
-      body = `<div style="display:grid;place-items:center;height:820px;text-align:center">
+      body = `<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:0;text-align:center;width:100%">
           <div>
             <h1 class="st" style="--i:0">Вопросы<span>?</span></h1>
             <p class="tiny st" style="--i:1;margin-top:40px">Катя · КБК · 06.08.2026</p>
@@ -420,25 +458,26 @@ function build(){
 
     } else if(d.closing){
       body = `${eyebrow}
-        <div class="grid g-split" style="margin-top:44px">
-          <div class="stack">
-            <h2 class="st" style="--i:1">${d.h}</h2>
-            <div class="rows" style="margin-top:16px">
+        <h2 class="st head" style="--i:1">${d.h}</h2>
+        <div class="grid g-split">
+          <div class="col-text">
+            <div class="rows">
               ${d.takeaways.map((t,k)=>`<div class="row st" style="--i:${k+2}"><span class="num">${String(k+1).padStart(2,"0")}</span><div><div class="k" style="font-size:21px">${t}</div></div></div>`).join("")}
             </div>
           </div>
-          <div class="stack" style="justify-content:center;padding-top:40px">
-            <h2 class="st" style="--i:4"><em>${d.big}</em></h2>
+          <div class="col-text">
+            <h2 class="st" style="--i:4" style="line-height:1.1"><em>${d.big}</em></h2>
+            ${d.bigNote ? `<p class="note st" style="--i:5;margin-top:4px">${d.bigNote}</p>` : ""}
           </div>
         </div>`;
 
     } else if(d.steps){
       body = `${eyebrow}
-        <h2 class="st" style="--i:1;margin-top:44px">${d.h2}</h2>
-        <div class="grid g-3" style="margin-top:52px">
-          ${d.steps.map((s,k)=>`<div class="stack tight st" style="--i:${k+2}">
+        <h2 class="st head" style="--i:1">${d.h2}</h2>
+        <div class="grid g-3" style="margin-top:52px;align-items:stretch">
+          ${d.steps.map((s,k)=>`<div class="col-media st" style="--i:${k+2};gap:16px;justify-content:flex-start">
               ${slotHTML(s.slot)}
-              <div style="display:flex;gap:16px;align-items:baseline;margin-top:8px">
+              <div style="display:flex;gap:16px;align-items:baseline;flex:0 0 auto">
                 <span class="num" style="font-family:var(--mono);font-size:19px;color:var(--accent)">${s.n}</span>
                 <div><div class="k" style="font-family:var(--mono);font-size:20px;text-transform:uppercase;letter-spacing:.03em">${s.k}</div>
                 <div class="v" style="font-size:18px;font-weight:300;color:var(--mute);margin-top:8px">${s.v}</div></div>
@@ -447,23 +486,23 @@ function build(){
 
     } else if(d.knobs){
       body = `${eyebrow}
-        <div class="grid" style="grid-template-columns:1fr 1.28fr;margin-top:44px;align-items:center">
-          <div>
-            <h2 class="st" style="--i:1">${d.h2}</h2>
-            <div class="rows" style="margin-top:34px">
+        <h2 class="st head" style="--i:1">${d.h2}</h2>
+        <div class="grid" style="grid-template-columns:1fr 1.28fr">
+          <div class="col-text">
+            <div class="rows">
               ${d.knobs.map((k,n2)=>`<div class="row st" style="--i:${n2+2}"><span class="num">${String(n2+1).padStart(2,"0")}</span>
                  <div><div class="k">${k.k}</div><div class="v">${k.v}</div></div></div>`).join("")}
             </div>
           </div>
-          <div class="st" style="--i:6">${slotHTML(d.slot)}</div>
+          <div class="col-media st" style="--i:6">${slotHTML(d.slot)}</div>
         </div>`;
 
     } else if(d.rigs){
       body = `${eyebrow}
-        <h2 class="st" style="--i:1;margin-top:44px">${d.h2}</h2>
-        <p class="lead st" style="--i:2;margin-top:12px;max-width:none">${d.lead}</p>
-        <div class="grid g-split" style="margin-top:36px;align-items:start">
-          <div style="display:grid;gap:26px">
+        <h2 class="st head" style="--i:1">${d.h2}</h2>
+        <p class="lead st" style="--i:2;margin-top:14px;max-width:none">${d.lead}</p>
+        <div class="grid g-split" style="margin-top:36px">
+          <div class="col-text" style="gap:26px">
             ${d.rigs.map((r,n2)=>`<div class="st" style="--i:${n2+3}">
                 <div style="font-family:var(--mono);font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);padding-bottom:10px;border-bottom:1px solid var(--line)">${r.os}</div>
                 <div style="margin-top:14px;display:grid;gap:7px">
@@ -472,37 +511,36 @@ function build(){
                 <div style="margin-top:12px;font-size:22px;font-weight:300">${r.line}</div></div>`).join("")}
             <h2 class="st" style="--i:5;font-size:34px;margin-top:8px;line-height:1.25"><em>${d.verdict}</em></h2>
           </div>
-          <div class="st" style="--i:6;max-width:620px;margin-left:auto;width:100%">${slotHTML(d.slot)}</div>
+          <div class="col-media st" style="--i:6">${slotHTML(d.slot)}</div>
         </div>`;
 
     } else if(d.pair){
       body = `${eyebrow}
-        <div class="grid g-split" style="margin-top:44px">
-          <div class="stack">
-            ${d.h ? `<h2 class="st" style="--i:1">${d.h}</h2>` : ""}
+        ${d.h ? `<h2 class="st head" style="--i:1">${d.h}</h2>` : ""}
+        <div class="grid g-split">
+          <div class="col-text">
             ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
             ${d.chips ? `<div class="chips st" style="--i:3">${d.chips.map(c=>`<span class="chip ${c[1]?"no":""}">${c[1]?"— ":""}${c[0]}</span>`).join("")}</div>` : ""}
             ${d.note ? `<p class="note st" style="--i:4">${d.note}</p>` : ""}
             ${bullets(d.bullets)}
             ${d.foot ? `<p class="tiny st" style="--i:6;margin-top:10px;color:var(--accent)">${d.foot}</p>` : ""}
           </div>
-          <div class="stack st" style="--i:5;gap:18px;max-width:670px;margin-left:auto;width:100%">
+          <div class="col-media duo st" style="--i:5">
             ${d.pair.map(p=>slotHTML(p)).join("")}
           </div>
         </div>`;
 
     } else {
       body = `${eyebrow}
-        <div class="grid g-split" style="margin-top:44px">
-          <div class="stack">
-            ${d.h ? `<h2 class="st" style="--i:1">${d.h}</h2>` : ""}
-            ${d.h2 ? `<h2 class="st" style="--i:1">${d.h2}</h2>` : ""}
+        ${d.h || d.h2 ? `<h2 class="st head" style="--i:1">${d.h || d.h2}</h2>` : ""}
+        <div class="grid g-split">
+          <div class="col-text">
             ${d.lead ? `<p class="lead st" style="--i:2">${d.lead}</p>` : ""}
             ${bullets(d.bullets)}
             ${d.note ? `<p class="note st" style="--i:4">${d.note}</p>` : ""}
             ${d.quote ? `<p class="quote st" style="--i:5;margin-top:14px">${d.quote}</p>` : ""}
           </div>
-          <div class="st" style="--i:3">${d.stat ? statHTML(d.stat) : slotHTML(d.slot)}</div>
+          <div class="col-media st" style="--i:3">${d.stat ? statHTML(d.stat) : slotHTML(d.slot)}</div>
         </div>`;
     }
 
