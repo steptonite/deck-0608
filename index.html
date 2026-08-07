@@ -441,7 +441,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260807-1301";
+const V = "20260807-1303";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -777,16 +777,28 @@ function wireMedia(root){
     if(!img) return;
     box.insertAdjacentHTML("beforeend", `<div class="open">клик — во весь экран</div>`);
     const live = () => img.naturalWidth > 0;            // файла нет → заглушка, не трогаем
+    // 🔴 07.08 то же лечение, что у компарера (wireCompare): рект кешируем,
+    // стиль пишем раз на кадр. Панорама висит на КАЖДОМ слайде с фото — грелось везде.
+    let rect = null, pending = null, queued = false;
+    addEventListener("resize", () => { rect = null; });
+    const flush = () => {
+      queued = false;
+      if(pending === null) return;
+      img.style.objectPosition = pending;
+      pending = null;
+    };
     box.addEventListener("pointermove", e => {
       if(!live() || img.classList.contains("fit")) return;  // «вписанному» кадру ехать некуда
-      const r = box.getBoundingClientRect();
-      if(!r.width) return;
+      const r = rect = rect || box.getBoundingClientRect();
+      if(!r.width){ rect = null; return; }
       const c = v => Math.max(0, Math.min(100, v)).toFixed(1);
       img.style.transition = "none";                   // на ходу — без догоняющей анимации
-      img.style.objectPosition = c((e.clientX - r.left) / r.width * 100) + "% "
-                              + c((e.clientY - r.top) / r.height * 100) + "%";
-    });
+      pending = c((e.clientX - r.left) / r.width * 100) + "% "
+              + c((e.clientY - r.top) / r.height * 100) + "%";
+      if(!queued){ queued = true; requestAnimationFrame(flush); }
+    }, {passive: true});
     box.addEventListener("pointerleave", () => {       // ушли — кадр плавно возвращается в центр
+      pending = null; rect = null;
       img.style.transition = "";
       img.style.objectPosition = "";
     });
