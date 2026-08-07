@@ -441,7 +441,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260806-1659";
+const V = "20260807-1301";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -740,18 +740,32 @@ function build(){
    и проценты окна дали бы промах. Клик по обложке по-прежнему листает дальше.
    🔴 06.08: слушаем ВЕСЬ СЛАЙД, а не сам блок. Текст обложки лежит поверх
    картинки, и пока курсор шёл по заголовку, полоса замирала. */
+/* 🔴 07.08 ГРІВ МАШИНУ. Було: на КОЖЕН pointermove (до ~120/с) — getBoundingClientRect()
+   (синхронний перерахунок геометрії сцени 1920×1080) + запис --cx. Мак виходив на 90-100 °C
+   навіть на підставці з кулерами. Тепер: рект кешуємо (він міняється лише на resize),
+   а запис стилю робимо РАЗ НА КАДР через rAF — скільки б подій не прийшло. */
 function wireCompare(root){
   const box = root.querySelector("[data-cmp]");
   if(!box) return;
-  const move = e => {
-    const r = box.getBoundingClientRect();
-    if(!r.width) return;
-    const p = (e.clientX - r.left) / r.width * 100;
-    box.style.setProperty("--cx", Math.max(2, Math.min(98, p)).toFixed(2) + "%");
-  };
   const slide = box.closest(".slide") || box;
-  slide.addEventListener("pointermove", move);
-  slide.addEventListener("pointerdown", move);
+  let rect = null, pending = null, queued = false;
+  const rectOf = () => (rect = rect || box.getBoundingClientRect());
+  addEventListener("resize", () => { rect = null; });
+  const flush = () => {
+    queued = false;
+    if(pending === null) return;
+    box.style.setProperty("--cx", pending);
+    pending = null;
+  };
+  const move = e => {
+    const r = rectOf();
+    if(!r.width){ rect = null; return; }
+    const p = (e.clientX - r.left) / r.width * 100;
+    pending = Math.max(2, Math.min(98, p)).toFixed(2) + "%";
+    if(!queued){ queued = true; requestAnimationFrame(flush); }
+  };
+  slide.addEventListener("pointermove", move, {passive: true});
+  slide.addEventListener("pointerdown", e => { rect = null; move(e); }, {passive: true});
 }
 
 /* Кадры в слотах: пока курсор идёт по кадру — кадр едет под ним, видно то,
