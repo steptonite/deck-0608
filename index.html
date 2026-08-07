@@ -46,6 +46,16 @@ html:active,body:active,.slide:active,.slot:active,.slot img:active,.cmp:active,
 /* зерно поверх усього: поле перестає бути «цифрово рівним» */
 #grain{position:fixed;inset:-100px;pointer-events:none;z-index:64;opacity:.10;
   background-image:var(--grain);background-size:260px 260px;mix-blend-mode:overlay}
+/* 🔴 07.08 ЕТАП 2. `mix-blend-mode` поверх усього — множник ціни: будь-яка зміна
+   під цим шаром змушує браузер переблендити ВЕСЬ екран. Поки полоса їде, зерно
+   і решта анімацій не потрібні — знімаємо їх на час руху і повертаємо через
+   чверть секунди тиші. Статичний вигляд не міняється: у спокої все на місці. */
+body.moving #grain{display:none}
+/* паузимо тільки ВІЧНІ фонові анімації (перетікання градієнта, промінь, блимання).
+   Появу слайдів не чіпаємо: інакше гортання під рухом миші застигало б на чверть секунди. */
+body.moving .tex,body.moving h1 span,body.moving h2 em,body.moving .row .num,
+body.moving .eyebrow b,body.moving .ph .id,
+body.moving .chrome .grow::after,body.moving .chrome .rec{animation-play-state:paused}
 
 /* помаранчевий не заливкою, а зернистою фарбою; градієнт повільно перетікає */
 .tex,h1 span,h2 em,.row .num,.eyebrow b,.ph .id{color:var(--accent);
@@ -205,18 +215,34 @@ h3{font-size:27px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
    тому вони лягають пікселем у піксель і «до/після» читається без пояснень. */
 .cmp{position:absolute;inset:0;overflow:hidden}
 .cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.cmp img.front{clip-path:inset(0 0 0 var(--cx))}
+/* 🔴 07.08 ЕТАП 2. Було `clip-path:inset(0 0 0 var(--cx))` на кадрі 1920×1080 —
+   clip-path НЕ композитний, тож кожен рух полоси = перемальовка всього кадру
+   (GPU-процес Zen сидів на 185-238% CPU, мак ішов у 105 °C).
+   Тепер обрізка робиться геометрією: вікно `.cmp-clip` їде вправо трансформом,
+   а кадр усередині тим самим трансформом компенсує зсув назад — візуально
+   стоїть на місці, видно його від полоси і правіше. Обидва рухи — чистий
+   composite на GPU: ні layout, ні paint. Відсотки тут працюють, бо вікно
+   і кадр однакової ширини. */
+.cmp-clip{position:absolute;inset:0;overflow:hidden;will-change:transform;
+  transform:translate3d(var(--cx),0,0)}
+.cmp-clip img.front{transform:translate3d(calc(-1 * var(--cx)),0,0)}
 /* завеса под текст: слева глухо, справа кадр должен читаться — иначе финал
    выглядит таким же тёмным, как карта, и сравнивать нечего */
 .cmp-veil{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(100deg,#080808 34%,rgba(8,8,8,.66) 55%,rgba(8,8,8,.06) 84%)}
-.cmp-line{position:absolute;top:0;bottom:0;left:var(--cx);width:1px;pointer-events:none;
+/* 🔴 07.08 ЕТАП 2. Було `left:var(--cx)` — геометрична властивість, тобто повний
+   перерахунок розкладки на КОЖЕН кадр руху. Тепер елемент розтягнутий на всю
+   ширину і їде трансформом (композитно), а видима волосина винесена в ::before
+   на його лівому краї. Мітка зліва чіпляється до цього ж краю через right:100%. */
+.cmp-line{position:absolute;top:0;bottom:0;left:0;width:100%;pointer-events:none;
+  will-change:transform;transform:translate3d(var(--cx),0,0)}
+.cmp-line::before{content:"";position:absolute;top:0;bottom:0;left:0;width:1px;
   background:linear-gradient(180deg,transparent,rgba(232,93,34,.75) 22%,rgba(232,93,34,.75) 78%,transparent)}
-.cmp-grip{position:absolute;top:50%;left:50%;width:26px;height:26px;transform:translate(-50%,-50%) rotate(45deg);
+.cmp-grip{position:absolute;top:50%;left:0;width:26px;height:26px;transform:translate(-50%,-50%) rotate(45deg);
   border:1px solid rgba(232,93,34,.85);background:rgba(8,8,8,.45)}
 .cmp-lab{position:absolute;bottom:118px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);white-space:nowrap}
-.cmp-lab.l{right:18px;text-align:right;color:var(--accent)}   /* слева финальный кадр — он и акцент */
+.cmp-lab.l{right:100%;margin-right:18px;text-align:right;color:var(--accent)}   /* слева финальный кадр — он и акцент */
 .cmp-lab.r{left:18px}
 /* текст обложки лежит ПОВЕРХ компарера — и раньше глотал pointermove:
    курсор заезжал на заголовок, и полоса замирала. События теперь слушает
@@ -441,7 +467,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260807-1303";
+const V = "20260807-1324";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -542,7 +568,7 @@ function build(){
       const c = d.compare;
       body = `<div class="cmp" data-cmp style="--cx:${c.at}%">
           <img src="${U(c.back.file)}" alt="">
-          <img src="${U(c.front.file)}" alt="" class="front">
+          <div class="cmp-clip"><img src="${U(c.front.file)}" alt="" class="front"></div>
           <div class="cmp-veil"></div>
           <div class="cmp-line">
             <span class="cmp-lab l">${c.back.label}</span>
@@ -751,6 +777,10 @@ function wireCompare(root){
   let rect = null, pending = null, queued = false;
   const rectOf = () => (rect = rect || box.getBoundingClientRect());
   addEventListener("resize", () => { rect = null; });
+  /* поки полоса їде — знімаємо зерно з блендом і решту анімацій (див. body.moving
+     у стилях). Повертаємо через чверть секунди після зупинки. */
+  let idle = 0;
+  const stop = () => document.body.classList.remove("moving");
   const flush = () => {
     queued = false;
     if(pending === null) return;
@@ -758,6 +788,9 @@ function wireCompare(root){
     pending = null;
   };
   const move = e => {
+    document.body.classList.add("moving");
+    clearTimeout(idle);
+    idle = setTimeout(stop, 250);
     const r = rectOf();
     if(!r.width){ rect = null; return; }
     const p = (e.clientX - r.left) / r.width * 100;
