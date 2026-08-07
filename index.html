@@ -467,7 +467,7 @@ const S = [
    V — версия ассетов. Файл может смениться под ТЕМ ЖЕ именем (Катя присылает замену),
    и браузер тогда покажет вчерашнее видео из кэша. publish.sh штампует V временем. */
 const A = "assets/";
-const V = "20260807-1324";
+const V = "20260807-1332";
 const U = f => A + f + "?v=" + V;
 /* __ASSET_RESOLVER_END__ */
 let i0 = 0;
@@ -770,6 +770,18 @@ function build(){
    (синхронний перерахунок геометрії сцени 1920×1080) + запис --cx. Мак виходив на 90-100 °C
    навіть на підставці з кулерами. Тепер: рект кешуємо (він міняється лише на resize),
    а запис стилю робимо РАЗ НА КАДР через rAF — скільки б подій не прийшло. */
+/* 🔴 07.08 Спільний перемикач «зараз щось їде під курсором». Поки він увімкнений,
+   знімаємо зерно з mix-blend і вічні фонові анімації (див. body.moving у стилях) —
+   бленд поверх усього робить БУДЬ-ЯКУ зміну під ним удвічі дорожчою. Тримаємо
+   спільним навмисне: перший раз я вчепив його лише на обкладинку, і фото-слайди
+   лишились із блендом. Хто додасть новий рух під курсором — хай зве звідси. */
+let __movingIdle = 0;
+function markMoving(){
+  document.body.classList.add("moving");
+  clearTimeout(__movingIdle);
+  __movingIdle = setTimeout(() => document.body.classList.remove("moving"), 250);
+}
+
 function wireCompare(root){
   const box = root.querySelector("[data-cmp]");
   if(!box) return;
@@ -777,10 +789,6 @@ function wireCompare(root){
   let rect = null, pending = null, queued = false;
   const rectOf = () => (rect = rect || box.getBoundingClientRect());
   addEventListener("resize", () => { rect = null; });
-  /* поки полоса їде — знімаємо зерно з блендом і решту анімацій (див. body.moving
-     у стилях). Повертаємо через чверть секунди після зупинки. */
-  let idle = 0;
-  const stop = () => document.body.classList.remove("moving");
   const flush = () => {
     queued = false;
     if(pending === null) return;
@@ -788,9 +796,7 @@ function wireCompare(root){
     pending = null;
   };
   const move = e => {
-    document.body.classList.add("moving");
-    clearTimeout(idle);
-    idle = setTimeout(stop, 250);
+    markMoving();
     const r = rectOf();
     if(!r.width){ rect = null; return; }
     const p = (e.clientX - r.left) / r.width * 100;
@@ -822,6 +828,7 @@ function wireMedia(root){
     };
     box.addEventListener("pointermove", e => {
       if(!live() || img.classList.contains("fit")) return;  // «вписанному» кадру ехать некуда
+      markMoving();
       const r = rect = rect || box.getBoundingClientRect();
       if(!r.width){ rect = null; return; }
       const c = v => Math.max(0, Math.min(100, v)).toFixed(1);
